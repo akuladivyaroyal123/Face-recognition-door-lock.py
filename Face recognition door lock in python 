@@ -1,0 +1,76 @@
+import cv2
+import face_recognition
+
+# Load authorized person's image
+authorized_image = face_recognition.load_image_file("authorized.jpg")
+authorized_face = face_recognition.face_encodings(authorized_image)[0]
+
+known_faces = [authorized_face]
+known_names = ["Authorized Person"]
+
+# Start camera
+camera = cv2.VideoCapture(0)
+
+print("===== FACE RECOGNITION DOOR LOCK =====")
+print("Scanning face...")
+
+while True:
+    ret, frame = camera.read()
+
+    if not ret:
+        print("Camera error!")
+        break
+
+    # Convert image for face recognition
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+    # Detect faces
+    face_locations = face_recognition.face_locations(rgb_frame)
+    face_encodings = face_recognition.face_encodings(
+        rgb_frame, face_locations
+    )
+
+    for face_encoding, location in zip(face_encodings, face_locations):
+
+        matches = face_recognition.compare_faces(
+            known_faces, face_encoding
+        )
+
+        name = "Unknown"
+
+        if True in matches:
+            name = "Authorized Person"
+            print("Access Granted - Door Unlocked")
+
+        else:
+            print("Access Denied - Door Locked")
+
+        # Display result
+        top, right, bottom, left = location
+
+        cv2.rectangle(
+            frame,
+            (left, top),
+            (right, bottom),
+            (0, 255, 0) if name != "Unknown" else (0, 0, 255),
+            2
+        )
+
+        cv2.putText(
+            frame,
+            name,
+            (left, top - 10),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.8,
+            (255, 255, 255),
+            2
+        )
+
+    cv2.imshow("Face Recognition Door Lock", frame)
+
+    # Press Q to exit
+    if cv2.waitKey(1) & 0xFF == ord("q"):
+        break
+
+camera.release()
+cv2.destroyAllWindows()
